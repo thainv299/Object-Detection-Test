@@ -23,11 +23,19 @@ I scoped the project to the **inference pipeline only**: read video → run dete
 
 ## 3. Why I made my key choices
 
-**Model — YOLO26 Nano.** YOLO26 is the latest generation from Ultralytics, and I picked the Nano variant (`yolo26n`) specifically for edge deployment. What makes it stand out for this use case:
+**Model — YOLO26 Nano (Custom Trained).** YOLO26 is the latest generation from Ultralytics, and I picked the Nano variant (`yolo26n`) specifically for edge deployment. 
 
+Instead of using the default COCO pre-trained weights, **I fully fine-tuned the model (150 epochs, `freeze=0`) on a custom dataset of approximately 90,000 images** (similar to COCO format). Due to data security and privacy policies, the raw dataset cannot be made public. 
+
+This custom model is optimized specifically for target surveillance tasks and detects 7 classes: `person`, `car`, `truck`, `bus`, `bicycle`, `motorcycle`, and `license_plate` (a class critical for traffic management that default COCO lacks).
+
+Key advantages of this model choice:
 - **NMS-free end-to-end inference** — the one-to-one detection head produces predictions directly without Non-Maximum Suppression as a post-processing step. That removes a whole chunk of CPU work that older YOLO versions needed.
 - **DFL-free box regression** — the detection head is simpler and lighter than previous generations while maintaining unbounded regression range.
 - **43% faster ONNX CPU inference** than YOLO11n on Intel Xeon CPU (per the official paper), which directly translates to better FPS on edge CPUs.
+- **Targeted Domain Adaptation:** Fully training on 90k custom traffic/pedestrian images ensures high localization accuracy and reliability for our specific camera angles.
+
+*(Detailed training metrics, confusion matrices, and loss curves are located in the [training_results/] directory).*
 
 I considered MobileNet-SSD (lighter but noticeably worse accuracy on vehicle detection) and larger YOLO variants like YOLO26s/m (better mAP but too slow for real-time on a modest CPU). The Nano variant hits the sweet spot — 40.9 mAP on COCO at just 1.7ms on T4 TensorRT.
 
