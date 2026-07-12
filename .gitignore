@@ -1,0 +1,32 @@
+# Python caches and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual Environments
+venv/
+env/
+.venv/
+ENV/
+
+# Project specific data and models (autodownloaded assets)
+models/
+data/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated files    
+Thumbs.db
+db.db
+Desktop.ini
+.DS_Store
