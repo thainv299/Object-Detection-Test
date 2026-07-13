@@ -64,13 +64,13 @@ def video_reader_worker(video_path, raw_queue: queue.Queue, stop_event: threadin
             
             cmd = [
                 "ffmpeg",
-                "-hwaccel", "cuda",
-                "-c:v", decoder,
-                "-i", video_path,
-                "-f", "rawvideo",
-                "-pix_fmt", "bgr24",
-                "-v", "error",
-                "pipe:1"
+                "-hwaccel", "cuda", # 1. Bật tăng tốc phần cứng CUDA
+                "-c:v", decoder,    # 2. Chỉ định chip giải mã GPU (ví dụ: h264_cuvid)
+                "-i", video_path,   # 3. File video đầu vào
+                "-f", "rawvideo",   # 4. Xuất ra định dạng video thô (không nén)
+                "-pix_fmt", "bgr24",# 5. Định dạng màu BGR24 (giống hệt định dạng của OpenCV)
+                "-v", "error",      # 6. Chỉ hiện log nếu có lỗi
+                "pipe:1"            # 7. Ghi dữ liệu trực tiếp vào stdout (RAM) thay vì lưu ra file   
             ]
             
             frame_size = width * height * 3  # BGR24 = 3 bytes per pixel
@@ -157,8 +157,13 @@ def video_processor_worker(raw_queue: queue.Queue, display_queue: queue.Queue,
     processed_count = 0
 
     while not stop_event.is_set() or not raw_queue.empty():
+        # Kiểm tra nhanh stop_event để thoát sớm nếu luồng chính đã gửi tín hiệu dừng
+        if stop_event.is_set() and raw_queue.empty():
+            break
+
         try:
-            frame = raw_queue.get(timeout=0.5)
+            # Rút ngắn timeout để phát hiện stop_event nhanh hơn
+            frame = raw_queue.get(timeout=0.05)
         except queue.Empty:
             continue
 
@@ -194,7 +199,8 @@ def video_processor_worker(raw_queue: queue.Queue, display_queue: queue.Queue,
 
         # Đưa frame đã vẽ cùng Raw FPS vào display_queue để luồng chính hiển thị
         try:
-            display_queue.put((annotated_frame, raw_fps), timeout=1.0)
+            # Rút ngắn timeout từ 1.0 xuống 0.05s để tránh nghẽn khi luồng chính đã tắt
+            display_queue.put((annotated_frame, raw_fps), timeout=0.05)
         except queue.Full:
             continue
 
